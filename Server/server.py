@@ -88,15 +88,21 @@ class Server:
                                 data=conn.recv(1024)
                                 count+=1
                         print("File Downloaded Successfully...")
-                        print(users[id]["cwd"])
-                    except:
+                        print(users[id]["cwd"],end="")
+                    except Exception as e:
+                        print(e)
                         print("File Doesnt Exist")
                     continue
                 if command[:4]=="send":
                     try:
                         conn.send(command.encode())
                         size=os.stat(os.path.join(os.getcwd(),command[5:])).st_size
+                        # print(f"{size}")
+                        # print(str(size).encode())
+                        conn.send(str(len(str(size))).encode())
                         conn.send(str(size).encode())
+                        print(str(len(str(size))).encode())
+                        print(str(size).encode())
                         with open(os.path.join(os.getcwd(),command[5:]),"rb") as f:
                             count=0
                             data=f.read(1024)
@@ -107,8 +113,9 @@ class Server:
                                 data=f.read(1024)
                         print("File Downloaded Successfully...")
                         print(users[id]["cwd"])
-                    except:
-                        print("File Not found...")
+                    except Exception as e:
+                        print(e)
+                        print("File Not found at",os.path.join(os.getcwd(),command[5:]))
                     continue
 
                 if command.encode():
@@ -119,6 +126,7 @@ class Server:
                 print(e)
                 conn.close()
                 users.pop(id)
+                break
 
 def start_shell(server:Server):
     while True:
@@ -156,7 +164,7 @@ def show_clients():
 
 def select_client(cmd:str,server:Server):
     try:    
-        choice=int(cmd.replace("select ",""))
+        choice=int(cmd.replace("select",""))
         if choice<len(users):
             conn=users[choice]["conn"]
             cwd=users[choice]["cwd"]
