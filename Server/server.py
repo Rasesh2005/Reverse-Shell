@@ -49,64 +49,76 @@ class Server:
         global users
         print(cwd,end="")
         while True:
-            command=input().strip()
-            if not command:
-                print(cwd,end="")
-                continue
-            
-            if command=="switch" or command=="break" or command=="quit":
-                break
-            
-            if command=="exit":
-                conn.close()
-                self.SERVER.close()
-                sys.exit()
-            if command[:2]=="cd":
-                conn.send(command.encode())
-                users[id]["cwd"]=conn.recv(1024*32).decode()
-                print(users[id]["cwd"],end="")
-                continue
-            
-            if command=="cwd":
-                conn.send(command.encode())
-                response=conn.recv(1024).decode()
-                print(response,end="")
-                continue
+            try:
+                command=input().strip()
+                if not command:
+                    print(cwd,end="")
+                    continue
+                
+                if command=="switch" or command=="break" or command=="quit":
+                    break
+                
+                if command=="exit":
+                    conn.close()
+                    self.SERVER.close()
+                    sys.exit()
+                if command[:2]=="cd":
+                    conn.send(command.encode())
+                    users[id]["cwd"]=conn.recv(1024*32).decode()
+                    print(users[id]["cwd"],end="")
+                    continue
+                
+                if command=="cwd":
+                    conn.send(command.encode())
+                    response=conn.recv(1024).decode()
+                    print(response,end="")
+                    continue
 
-            if command[:3]=="get":
-                conn.send(command.encode())
-                size=int(conn.recv(256).decode())
-                with open(command[4:],"wb") as f:
-                    data=conn.recv(1024) 
-                    count=1
-                    while data:
-                        f.write(data)
-                        print(f"{round(1024*count/size*100,2)}% Received...",end="\r")
-                        if(round(1024*count/size*100,2)==100.0):
-                            break
-                        count+=1
-
-                print("File Received Successfully")
-                print(users[id]["cwd"],end="")
-                continue
-            if command[:4]=="send":
-                if os.path.exists(os.path.join(os.getcwd(),command[4:])) and os.path.isfile(os.path.join(os.getcwd(),command[4:])):
-                    size=os.stat(os.path.join(os.getcwd(),command[4:])).st_size
-                    self.conn.send(str(size).encode())
-                    with open(os.path.join(os.getcwd(),command[4:]),"rb") as f:
-                        data=f.read(1024)
-                        count=1
-                        while data:
-                            self.conn.send(data)
-                            print(f"{round(1024*count/size*100,2)}% Transferred...",end="\r")
+                if command[:3]=="get":
+                    try:
+                        conn.send(command.encode())
+                        size=int(conn.recv(1024).decode())
+                        with open(command[4:],"wb") as f:
+                            data=conn.recv(1024)
+                            count=1
+                            while data:
+                                f.write(data)
+                                print(f"{round(count*(1024/size)*100,2)}% Downloaded",end="\r")
+                                if len(data)<1024: break
+                                data=conn.recv(1024)
+                                count+=1
+                        print("File Downloaded Successfully...")
+                        print(users[id]["cwd"])
+                    except:
+                        print("File Doesnt Exist")
+                    continue
+                if command[:4]=="send":
+                    try:
+                        conn.send(command.encode())
+                        size=os.stat(os.path.join(os.getcwd(),command[5:])).st_size
+                        conn.send(str(size).encode())
+                        with open(os.path.join(os.getcwd(),command[5:]),"rb") as f:
+                            count=0
                             data=f.read(1024)
-                            count+=1
-                        print("Data sent!! Successfully")
-                        print(cwd,end="")
-            if command.encode():
-                conn.send(command.encode())
-                response=conn.recv(1024*32).decode()
-                print(response,end="")
+                            while data:
+                                conn.send(data)
+                                count+=1
+                                print(f"{round(count*(1024/size)*100,2)}% Transferred",end="\r")
+                                data=f.read(1024)
+                        print("File Downloaded Successfully...")
+                        print(users[id]["cwd"])
+                    except:
+                        print("File Not found...")
+                    continue
+
+                if command.encode():
+                    conn.send(command.encode())
+                    response=conn.recv(1024*32).decode()
+                    print(response,end="")
+            except Exception as e:
+                print(e)
+                conn.close()
+                users.pop(id)
 
 def start_shell(server:Server):
     while True:
